@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Prompt Generator</title>
+    <meta name="description" content="Standalone AI Video Prompt Generator - Generate detailed prompts for AI video generation using Gemini API">
+    <meta name="keywords" content="AI, video generation, prompts, Gemini, Runway, Pika Labs, standalone">
+    <meta name="author" content="AI Video Prompt Generator - Standalone Version">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
+    
+    <style>
+        :root {
+            --primary-orange: #D17A5A;
+            --secondary-orange: #E89474;
+            --dark-bg: #2A2A2A;
+            --darker-bg: #1E1E1E;
+            --card-bg: #333333;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B8B8B8;
+            --text-muted: #888888;
+            --success-color: #4CAF50;
+            --error-color: #F44336;
+            --warning-color: #FF9800;
+            --info-color: #2196F3;
+            --border-color: #404040;
+            --shadow-dark: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-light: 0 4px 16px rgba(209, 122, 90, 0.1);
+            --border-radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background: var(--dark-bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        .container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: var(--shadow-dark);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            animation: slideUp 0.6s ease-out;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: var(--text-primary);
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+            position: relative;
+        }
+
+        .header h1::before {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--primary-orange);
+            border-radius: 2px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1em;
+            max-width: 600px;
+            margin: 15px auto 0;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        input[type="text"], 
+        input[type="password"], 
+        textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            transition: var(--transition);
+            background: var(--darker-bg);
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        input[type="text"]::placeholder,
+        input[type="password"]::placeholder,
+        textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        input[type="text"]:focus, 
+        input[type="password"]:focus, 
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-orange);
+            background: var(--darker-bg);
+            box-shadow: 0 0 0 3px rgba(209, 122, 90, 0.15);
+            transform: translateY(-2px);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-orange) 0%, var(--secondary-orange) 100%);
+            color: var(--text-primary);
+            padding: 16px 32px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(209, 122, 90, 0.25);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            background: var(--text-muted);
+        }
+
+        .btn:disabled:hover {
+            transform: none;
+            box-shadow: var(--shadow-light);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-orange);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--darker-bg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--primary-orange);
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+            border: 1px solid var(--border-color);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result h3 {
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .result-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            white-space: pre-wrap;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            position: relative;
+            color: var(--text-secondary);
+        }
+
+        .result-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .result-content::-webkit-scrollbar-track {
+            background: var(--darker-bg);
+            border-radius: 4px;
+        }
+
+        .result-content::-webkit-scrollbar-thumb {
+            background: var(--primary-orange);
+            border-radius: 4px;
+        }
+
+        .copy-btn {
+            background: var(--success-color);
+            padding: 12px 24px;
+            font-size: 0.95em;
+            margin-top: 15px;
+            width: auto;
+            min-width: 140px;
+        }
+
+        .copy-btn:hover {
+            background: #45A049;
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.25);
+        }
+
+        .error {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            border-left: 4px solid var(--error-color);
+            color: #FFCDD2;
+            padding: 16px;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+            display: none;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .tip {
+            background: rgba(33, 150, 243, 0.1);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            border-left: 4px solid var(--info-color);
+            color: #BBDEFB;
+            padding: 16px;
+            border-radius: var(--border-radius);
+            margin-bottom: 25px;
+        }
+
+        .tip strong {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .version {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 0.8em;
+            color: var(--text-muted);
+            opacity: 0.7;
+            background: var(--darker-bg);
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Card-like styling for form sections */
+        .form-section {
+            background: var(--darker-bg);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 24px;
+                margin: 10px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .header p {
+                font-size: 1em;
+            }
+
+            input, textarea, .btn {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .version {
+                position: static;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+        }
+
+        /* Focus indicators for keyboard navigation */
+        .btn:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible {
+            outline: 2px solid var(--primary-orange);
+            outline-offset: 2px;
+        }
+
+        /* Loading state improvements */
+        .loading p {
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+
+        /* Enhanced hover effects */
+        .form-group:hover input,
+        .form-group:hover textarea {
+            border-color: rgba(209, 122, 90, 0.5);
+        }
+
+        /* Subtle animations */
+        .container > * {
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+        }
+
+        .container > *:nth-child(1) { animation-delay: 0.1s; }
+        .container > *:nth-child(2) { animation-delay: 0.2s; }
+        .container > *:nth-child(3) { animation-delay: 0.3s; }
+        .container > *:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="version">v2.1 Standalone</div>
+        
+        <div class="header">
+            <h1>🎬 AI Video Prompt Generator</h1>
+            <p>Standalone tool to create detailed prompts for AI video generation using Gemini API</p>
+        </div>
+
+        <div class="tip">
+            <strong>💡 Tip:</strong>
+            Describe your video theme clearly. Example: "a cat playing in the garden", "futuristic landscape", "homemade cake recipe", etc.
+        </div>
+
+        <form id="promptForm" role="form" aria-label="Video Prompt Generator Form">
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="apiKey">🔑 Gemini API Key:</label>
+                    <input 
+                        type="password" 
+                        id="apiKey" 
+                        name="apiKey"
+                        placeholder="Paste your Gemini API key here" 
+                        required 
+                        aria-describedby="apiKey-help"
+                        autocomplete="off"
+                    >
+                    <small id="apiKey-help" class="sr-only">Enter your Google Gemini API key to generate prompts</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="theme">🎯 Video Theme:</label>
+                    <textarea 
+                        id="theme" 
+                        name="theme"
+                        placeholder="Describe the theme or concept of the video you want to create..." 
+                        required
+                        aria-describedby="theme-help"
+                        rows="4"
+                    ></textarea>
+                    <small id="theme-help" class="sr-only">Describe what you want your AI-generated video to be about</small>
+                </div>
+            </div>
+
+            <button type="submit" class="btn" id="generateBtn" aria-describedby="generate-help">
+                🚀 Generate Detailed Prompt
+            </button>
+            <small id="generate-help" class="sr-only">Click to generate a detailed prompt for AI video creation</small>
+        </form>
+
+        <div class="loading" id="loading" role="status" aria-live="polite">
+            <div class="spinner" aria-hidden="true"></div>
+            <p>Generating your detailed prompt...</p>
+        </div>
+
+        <div class="error" id="error" role="alert" aria-live="assertive"></div>
+
+        <div class="result" id="result" role="region" aria-label="Generated Prompt Results">
+            <h3>📝 Your Detailed Prompt:</h3>
+            <div class="result-content" id="resultContent" tabindex="0" aria-label="Generated prompt content"></div>
+            <button class="btn copy-btn" id="copyBtn" aria-describedby="copy-help">📋 Copy Prompt</button>
+            <small id="copy-help" class="sr-only">Copy the generated prompt to your clipboard</small>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            GEMINI_API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
+            MAX_RETRIES: 3,
+            RETRY_DELAY: 1000,
+            TIMEOUT: 30000
+        };
+
+        // DOM Elements
+        const elements = {
+            form: document.getElementById('promptForm'),
+            loading: document.getElementById('loading'),
+            result: document.getElementById('result'),
+            error: document.getElementById('error'),
+            resultContent: document.getElementById('resultContent'),
+            generateBtn: document.getElementById('generateBtn'),
+            copyBtn: document.getElementById('copyBtn'),
+            apiKey: document.getElementById('apiKey'),
+            theme: document.getElementById('theme')
+        };
+
+        // State management
+        let isGenerating = false;
+
+        // Initialize the application
+        function init() {
+            bindEvents();
+            loadSavedData();
+            checkBrowserSupport();
+        }
+
+        // Bind event listeners
+        function bindEvents() {
+            elements.form.addEventListener('submit', handleFormSubmit);
+            elements.copyBtn.addEventListener('click', handleCopyClick);
+            
+            // Save data on input (except API key for security)
+            elements.theme.addEventListener('input', debounce(saveData, 500));
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyboardShortcuts);
+        }
+
+        // Handle form submission
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            if (isGenerating) return;
+            
+            const apiKey = elements.apiKey.value.trim();
+            const theme = elements.theme.value.trim();
+
+            // Validation
+            if (!apiKey || !theme) {
+                showError('Please fill in all required fields.');
+                return;
+            }
+
+            if (apiKey.length < 20) {
+                showError('Please enter a valid Gemini API key.');
+                return;
+            }
+
+            try {
+                await generatePrompt(apiKey, theme);
+            } catch (error) {
+                console.error('Generation error:', error);
+                showError(error.message);
+            }
+        }
+
+        // Main prompt generation function
+        async function generatePrompt(apiKey, theme) {
+            hideError();
+            hideResult();
+            showLoading();
+            setGenerating(true);
+
+            try {
+                const prompt = createVideoPrompt(theme);
+                const generatedPrompt = await callGeminiAPI(apiKey, prompt);
+                showResult(generatedPrompt);
+                
+                // Analytics (if needed)
+                trackGeneration(theme);
+                
+            } finally {
+                hideLoading();
+                setGenerating(false);
+            }
+        }
+
+        // Create the detailed video prompt
+        function createVideoPrompt(theme) {
+            return `You are an expert in creating prompts for AI video generation.
+
+Create an EXTREMELY DETAILED and technical prompt to generate a video about: "${theme}"
+
+The prompt should include:
+
+🎬 VISUAL DESCRIPTION:
+- Detailed description of the main scene
+- Specific visual elements
+- Composition and framing
+- Camera movement and angles
+
+🎨 STYLE & AESTHETICS:
+- Artistic style (realistic, cartoon, cinematic, etc.)
+- Specific color palette
+- Lighting and atmosphere
+- Texture and visual quality
+
+⚡ TECHNICAL ASPECTS:
+- Suggested resolution and quality
+- Approximate duration
+- Transitions and effects
+- Rhythm and timing
+
+🎵 AUDIO & ENVIRONMENT:
+- Soundtrack suggestions
+- Sound effects
+- Ambient sound
+
+📝 FINAL PROMPT:
+End with a concise and direct prompt that can be used directly in video generation tools like Runway, Pika Labs, Stable Video Diffusion, etc.
+
+IMPORTANT: Respond ENTIRELY IN ENGLISH. The final prompt must be in perfect English, optimized for AI video generation tools.
+
+Be extremely specific and creative!`;
+        }
+
+        // Call Gemini API with retry logic
+        async function callGeminiAPI(apiKey, prompt) {
+            let lastError;
+            
+            for (let attempt = 1; attempt <= CONFIG.MAX_RETRIES; attempt++) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT);
+
+                    const response = await fetch(CONFIG.GEMINI_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'x-goog-api-key': apiKey,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: prompt }]
+                            }],
+                            generationConfig: {
+                                temperature: 0.7,
+                                topP: 0.8,
+                                topK: 40,
+                                maxOutputTokens: 2048,
+                            }
+                        }),
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeoutId);
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => null);
+                        throw new Error(getErrorMessage(response.status, errorData));
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                        return data.candidates[0].content.parts[0].text;
+                    } else {
+                        throw new Error('Unexpected API response format. Please try again.');
+                    }
+
+                } catch (error) {
+                    lastError = error;
+                    
+                    if (error.name === 'AbortError') {
+                        throw new Error('Request timed out. Please try again.');
+                    }
+                    
+                    if (attempt === CONFIG.MAX_RETRIES) {
+                        throw error;
+                    }
+                    
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY * attempt));
+                }
+            }
+            
+            throw lastError;
+        }
+
+        // Get appropriate error message based on status code
+        function getErrorMessage(status, errorData) {
+            const messages = {
+                400: 'Invalid request. Please check your input.',
+                401: 'Invalid API key. Please check your Gemini API key.',
+                403: 'Access denied. Please check your API key permissions.',
+                429: 'Rate limit exceeded. Please try again in a few minutes.',
+                500: 'Server error. Please try again later.',
+                503: 'Service temporarily unavailable. Please try again later.'
+            };
+
+            return messages[status] || `API Error: ${status} - ${errorData?.error?.message || 'Unknown error'}`;
+        }
+
+        // UI State Management Functions
+        function showLoading() {
+            elements.loading.style.display = 'block';
+            elements.loading.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function hideLoading() {
+            elements.loading.style.display = 'none';
+        }
+
+        function showResult(content) {
+            elements.resultContent.textContent = content;
+            elements.result.style.display = 'block';
+            elements.result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            // Focus for screen readers
+            setTimeout(() => {
+                elements.resultContent.focus();
+            }, 100);
+        }
+
+        function hideResult() {
+            elements.result.style.display = 'none';
+        }
+
+        function showError(message) {
+            elements.error.textContent = message;
+            elements.error.style.display = 'block';
+            elements.error.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function hideError() {
+            elements.error.style.display = 'none';
+        }
+
+        function setGenerating(generating) {
+            isGenerating = generating;
+            elements.generateBtn.disabled = generating;
+            elements.generateBtn.textContent = generating ? 'Generating...' : '🚀 Generate Detailed Prompt';
+            elements.apiKey.disabled = generating;
+            elements.theme.disabled = generating;
+        }
+
+        // Handle copy button click
+        function handleCopyClick() {
+            const text = elements.resultContent.textContent;
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showCopySuccess();
+                }).catch(() => {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        // Fallback copy method for older browsers
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-999999px';
+            textarea.style.top = '-999999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showCopySuccess();
+            } catch (err) {
+                console.error('Copy failed:', err);
+                alert('Unable to copy automatically. Please select and copy the text manually.');
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // Show copy success feedback
+        function showCopySuccess() {
+            const originalText = elements.copyBtn.textContent;
+            elements.copyBtn.textContent = '✅ Copied!';
+            elements.copyBtn.style.background = '#28a745';
+            
+            setTimeout(() => {
+                elements.copyBtn.textContent = originalText;
+                elements.copyBtn.style.background = '#4CAF50';
+            }, 2000);
+        }
+
+        // Keyboard shortcuts
+        function handleKeyboardShortcuts(e) {
+            // Ctrl/Cmd + Enter to generate
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isGenerating) {
+                e.preventDefault();
+                elements.form.dispatchEvent(new Event('submit'));
+            }
+            
+            // Escape to clear error
+            if (e.key === 'Escape') {
+                hideError();
+            }
+        }
+
+        // Local storage functions - using in-memory storage for standalone version
+        let memoryStorage = {};
+
+        function saveData() {
+            try {
+                const data = {
+                    theme: elements.theme.value,
+                    timestamp: Date.now()
+                };
+                memoryStorage.videoPromptGenerator = JSON.stringify(data);
+            } catch (e) {
+                console.warn('Could not save data to memory storage:', e);
+            }
+        }
+
+        function loadSavedData() {
+            try {
+                const saved = memoryStorage.videoPromptGenerator;
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    // Only restore if less than 24 hours old
+                    if (Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
+                        elements.theme.value = data.theme || '';
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not load saved data:', e);
+            }
+        }
+
+        // Check browser support
+        function checkBrowserSupport() {
+            if (!window.fetch) {
+                showError('Your browser is not supported. Please use a modern browser.');
+                return;
+            }
+            
+            // Check for required features
+            const requiredFeatures = [
+                'Promise',
+                'AbortController',
+                'JSON'
+            ];
+            
+            for (const feature of requiredFeatures) {
+                if (!(feature in window)) {
+                    console.warn(`Feature ${feature} not supported`);
+                }
+            }
+        }
+
+        // Analytics/tracking (placeholder)
+        function trackGeneration(theme) {
+            // Add your analytics code here if needed
+            console.log('Prompt generated for theme:', theme.substring(0, 50) + '...');
+        }
+
+        // Utility function for debouncing
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Error boundary for unhandled errors
+        window.addEventListener('error', (e) => {
+            console.error('Unhandled error:', e.error);
+            if (isGenerating) {
+                hideLoading();
+                setGenerating(false);
+                showError('An unexpected error occurred. Please try again.');
+            }
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('Unhandled promise rejection:', e.reason);
+            if (isGenerating) {
+                hideLoading();
+                setGenerating(false);
+                showError('An unexpected error occurred. Please try again.');
+            }
+        });
+
+        // Initialize when DOM is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+
+        // Service worker registration removed for standalone version
+        // This is now a fully standalone HTML file
+    </script>
+</body>
+</html>
